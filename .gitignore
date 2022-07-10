@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+token.txt
+libtesseract-5.dll
+
 # Distribution / packaging
 .Python
 build/
