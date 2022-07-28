@@ -30,6 +30,8 @@ If $comName == "DESKTOP-DRGSMAA" Then
 	$sCoords[2] = 450
 	$sCoords[3] = 400
 ElseIf $comName == "DESKTOP-S1LHRJQ" Then
+	$sCoords[0] = 240
+	$sCoords[1] = 115
 	$sCoords[2] = 500
 	$sCoords[3] = 420
 Else
