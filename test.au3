@@ -5,6 +5,7 @@
 #include <WindowsConstants.au3>
 #include <Tesseract.au3>
 #include <File.au3>
+#include <FileConstants.au3>
 
 $token = ""
 If FileExists("token.txt") == 1 Then
@@ -76,6 +77,26 @@ While 1
 	EndIf
 WEnd
 
+Func writeTextTofile($msg)
+	; Create file in same folder as script
+	$sFileName = @ScriptDir &"\boss_log.txt"
+
+	; Open file - deleting any existing content
+	$hFilehandle = FileOpen($sFileName, $FO_APPEND)
+
+	; Prove it exists
+	If FileExists($sFileName) Then
+		; Append a line
+		FileWrite($hFilehandle, @CRLF & $msg)
+	Else
+		; Write a line
+		FileWrite($hFilehandle, $msg)
+	EndIf
+
+	; Close the file handle
+	FileClose($hFilehandle)
+EndFunc
+
 Func lineNotify($message)
 
 	$url = 'curl.exe -i  -X POST "https://notify-api.line.me/api/notify" --header "Content-Type:application/x-www-form-urlencoded" --header "Authorization: Bearer '&$token&'"  -d "message='&$message&'" '
@@ -123,18 +144,40 @@ Func btnOCRClick()
 
 ;~ 	_MarkMatch($sCoords)
 ;~ 	WinActivate($selected)
-	$pos = WinGetPos($selected)
+	;$pos = WinGetPos("Screenshot_20220727-134833.png ‎- Photos")
+;~ 	$pos = WinGetClientSize("ROX-Beer")
+;~ 	$leftPercent = 68.3
+;~ 	$topPercent = 73.3
+;~ 	$rightPercent = 34
+;~ 	$botPercent = 2.5
+;~ 	$left = Floor($pos[0]-($pos[0]*$leftPercent/100))
+;~ 	$top = Floor($pos[1]-($pos[1]*$topPercent/100))
+;~ 	$right = Floor($pos[0]-($pos[0]*$rightPercent/100))
+;~ 	$bot = Floor($pos[1]-($pos[1]*$botPercent/100))
+;~ 	;240
+;~ 	ConsoleWrite(@LF&"$left: "&$left&@LF)
+;~ 	;115
+;~ 	ConsoleWrite(@LF&"$top: "&$top&@LF)
+;~ 	;500
+;~ 	ConsoleWrite(@LF&"$right: "&$right&@LF)
+;~ 	;420
+;~ 	ConsoleWrite(@LF&"$bot: "&$bot&@LF)
+	;_ArrayDisplay($pos)
 	$hTimer = TimerInit()
+	; Screenshot_20220727-134833.png ‎- Photos
+	;~ 	$sOCRTextResult = 'MVP/Mini: Kraken'
+	;~ 	$sOCRTextResult = _TesseractScreenCapture(0, "", 1, 2, 191, 80, 350,200, 0)
+
+	;$sOCRTextResult = _TesseractWinCapture("Screenshot_20220727-134833.png ‎- Photos","",0, "", 1, 6, $left, $top, $right, $bot, 0)
+	;$sOCRTextResult = _TesseractWinCapture($selected,"",0, "", 1, 6, $left, $top, $right, $bot, 0)
 	$sOCRTextResult = _TesseractWinCapture($selected,"",0, "", 1, 6, $sCoords[0], $sCoords[1], $sCoords[2], $sCoords[3], 0)
-;~ 	$sOCRTextResult = _TesseractScreenCapture(0, "", 1, 2, 191, 80, 350,200, 0)
 	ConsoleWrite("Time Elapsed: " & TimerDiff($hTimer)& $sOCRTextResult & @CRLF)
-;~ 	$sOCRTextResult = 'MVP/Mini: Kraken'
 	Local $sString = 'MVP/Mini: Kraken'
 	Local $bossFullNameList[] = ["Phreeoni","Mistress","Eddga","Kraken","Orc Hero","Pharaoh","Orc Lord","Eclipse","Dragon Fly","Mastering","Ghostring","King Dramoh","Toad","Deviling","Angeling","Vagabond Wolf","Dark Priest", "Amon Ra"]
 	Local $bossList[] = ["Phre","Mist","Edd","Kra","Hero","Phar","Lord","Eclip","Fly","Mas","Ghost","King","Toad","Devil","Angel","Wolf","Priest", "Amon"]
 	Local $miniPosition = StringInStr(	$sOCRTextResult, "Mini")
 	Local $mvpPosition = StringInStr(	$sOCRTextResult, "MVP")
-	Local $abyssPosition = StringInStr(	$sOCRTextResult, "Abyss")
+	Local $abyssPosition = StringInStr(	$sOCRTextResult, "Abys")
 	If ($miniPosition > 0 Or $mvpPosition > 0) And $abyssPosition == 0 Then
 		For $i = 0 To UBound($bossList)-1 Step +1
 			Local $bossPosition = StringInStr(	$sOCRTextResult, $bossList[$i])
@@ -142,6 +185,7 @@ Func btnOCRClick()
 				$hTimer = TimerInit()
 				lineNotify($bossFullNameList[$i]&" Refreshing soon")
 				$lastBoss = $bossFullNameList[$i]
+				writeTextTofile($sOCRTextResult)
 				ConsoleWrite("Time Elapsed lineNotify: " & TimerDiff($hTimer)& $bossPosition & @CRLF)
 			Else
 				ConsoleWrite(@LF&$sOCRTextResult&@LF)
