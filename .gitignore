@@ -155,3 +155,5 @@ cython_debug/
 #.idea/
 test.exe
 boss_log.txt
+tokenBoss.txt
+*.exe

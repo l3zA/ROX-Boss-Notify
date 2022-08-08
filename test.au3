@@ -22,29 +22,28 @@ Else
 	Exit
 EndIf
 
-$comName = @ComputerName
-
-Local $sCoords[4]
-$sCoords[0] = 240
-$sCoords[1] = 110
-If $comName == "DESKTOP-DRGSMAA" Then
-	$sCoords[2] = 450
-	$sCoords[3] = 400
-ElseIf $comName == "DESKTOP-S1LHRJQ" Then
-	$sCoords[0] = 240
-	$sCoords[1] = 115
-	$sCoords[2] = 500
-	$sCoords[3] = 420
+$tokenBoss = ""
+If FileExists("tokenBoss.txt") == 1 Then
+	$tokenBossFile = FileOpen("tokenBoss.txt", 0)
+	While 1
+		$line = FileReadLine($tokenBossFile)
+		If @error = -1 Then ExitLoop
+		$tokenBoss = $line
+	WEnd
+	FileClose($tokenBossFile)
+;~ 	MsgBox(0, '', 'Line token in(token.txt):' & $token)
 Else
-	$sCoords[2] = 470
-	$sCoords[3] = 410
+	MsgBox(0, '', 'Line token in(tokenBoss.txt) not found')
+	Exit
 EndIf
+
+
 $lastBoss = ""
 ;Please note that these examples might not work as the match pictures have to be found with the exact same size on your screen.
 
 Opt("GUIOnEventMode", 1)
 #Region ### START Koda GUI section ### Form=
-$Form1 = GUICreate("Boss Notify", 250, 70, -1, -1)
+$Form1 = GUICreate("Boss Notify", 250, 100, -1, -1)
 GUISetOnEvent($GUI_EVENT_CLOSE, "Form1Close")
 GUISetOnEvent($GUI_EVENT_MINIMIZE, "Form1Minimize")
 GUISetOnEvent($GUI_EVENT_MAXIMIZE, "Form1Maximize")
@@ -57,17 +56,42 @@ $ComboVM = GUICtrlCreateCombo("", 16, 8, 145, 25, BitOR($CBS_DROPDOWNLIST,$CBS_A
 GUICtrlSetOnEvent(-1, "ComboVMChange")
 $Combo1 = GUICtrlCreateCombo("", 16, 38, 145, 25, BitOR($CBS_DROPDOWNLIST,$CBS_AUTOHSCROLL))
 GUICtrlSetOnEvent(-1, "Combo1Change")
+$ComboBoss = GUICtrlCreateCombo("", 16, 68, 145, 25, BitOR($CBS_DROPDOWNLIST,$CBS_AUTOHSCROLL))
+;;GUICtrlSetOnEvent(-1, "ComboBoss")
 
 GUISetState(@SW_SHOW)
 #EndRegion ### END Koda GUI section ###
 
 Local $vmList = "Blue|LD"
 
-GUICtrlSetData($ComboVM, $vmList)
+Local $bossList = "All|Angeling|Phreeoni|Mistress|Eddga|Kraken|Orc Hero|Pharaoh|Orc Lord|Eclipse|Dragon Fly|Mastering|Ghostring|King Dramoh|Toad|Deviling|Vagabond Wolf|Dark Priest|Amon Ra"
+
+GUICtrlSetData($ComboBoss, $bossList, "All")
 
 Global $start = False
 
+$comName = @ComputerName
 
+Local $sCoords[4]
+$sCoords[0] = 240
+$sCoords[1] = 110
+If $comName == "DESKTOP-DRGSMAA" Then
+	$sCoords[2] = 450
+	$sCoords[3] = 400
+	GUICtrlSetData($ComboVM, $vmList, "Blue")
+ElseIf $comName == "DESKTOP-S1LHRJQ" Then
+	$sCoords[0] = 240
+	$sCoords[1] = 115
+	$sCoords[2] = 500
+	$sCoords[3] = 420
+	GUICtrlSetData($ComboVM, $vmList, "LD")
+Else
+	$sCoords[2] = 470
+	$sCoords[3] = 410
+	GUICtrlSetData($ComboVM, $vmList)
+EndIf
+
+ComboVMChange()
 
 
 While 1
@@ -97,9 +121,9 @@ Func writeTextTofile($msg)
 	FileClose($hFilehandle)
 EndFunc
 
-Func lineNotify($message)
+Func lineNotify($message, $tokenText)
 
-	$url = 'curl.exe -i  -X POST "https://notify-api.line.me/api/notify" --header "Content-Type:application/x-www-form-urlencoded" --header "Authorization: Bearer '&$token&'"  -d "message='&$message&'" '
+	$url = 'curl.exe -i  -X POST "https://notify-api.line.me/api/notify" --header "Content-Type:application/x-www-form-urlencoded" --header "Authorization: Bearer '&$tokenText&'"  -d "message='&$message&'" '
 
 	Dim $iPidCurl = Run($url, @ScriptDir, @SW_HIDE,2+4)
 	Dim $sOut
@@ -181,14 +205,30 @@ Func btnOCRClick()
 	If ($miniPosition > 0 Or $mvpPosition > 0) And $abyssPosition == 0 Then
 		For $i = 0 To UBound($bossList)-1 Step +1
 			Local $bossPosition = StringInStr(	$sOCRTextResult, $bossList[$i])
-			If $bossPosition > 0 And $bossFullNameList[$i] <> $lastBoss Then
-				$hTimer = TimerInit()
-				lineNotify($bossFullNameList[$i]&" Refreshing soon")
-				$lastBoss = $bossFullNameList[$i]
-				writeTextTofile($sOCRTextResult)
-				ConsoleWrite("Time Elapsed lineNotify: " & TimerDiff($hTimer)& $bossPosition & @CRLF)
+			Local $bossName = $bossFullNameList[$i]
+			Local $bossType = GuiCtrlRead($ComboBoss)
+			if $bossType <> "All" Then
+				If $bossPosition > 0 And $bossName <> $lastBoss And $bossName == $bossType Then
+					$hTimer = TimerInit()
+					lineNotify($bossName&" Refreshing soon", $tokenBoss)
+					$lastBoss = $bossName
+					writeTextTofile($sOCRTextResult)
+					ConsoleWrite("Time Elapsed lineNotify: " & TimerDiff($hTimer)& $bossPosition & @CRLF)
+					ConsoleWrite("$tokenBoss: " & $tokenBoss & @CRLF)
+				Else
+					ConsoleWrite(@LF&$sOCRTextResult&@LF)
+				EndIf
 			Else
-				ConsoleWrite(@LF&$sOCRTextResult&@LF)
+				If $bossPosition > 0 And $bossName <> $lastBoss Then
+					$hTimer = TimerInit()
+					lineNotify($bossName&" Refreshing soon", $token)
+					$lastBoss = $bossName
+					writeTextTofile($sOCRTextResult)
+					ConsoleWrite("Time Elapsed lineNotify: " & TimerDiff($hTimer)& $bossPosition & @CRLF)
+					ConsoleWrite("$token: " & $token & @CRLF)
+				Else
+					ConsoleWrite(@LF&$sOCRTextResult&@LF)
+				EndIf
 			EndIf
 		Next
 	Else
